@@ -92,14 +92,17 @@ status:async()=>({status:JSON.stringify(st)}),
 run:async({plan})=>{const s=JSON.parse(plan);st.running=true;st.log=[];let i=0;
 const nx=()=>{if(!st.running)return;if(i<s.length){st.log.push((i+1)+'. '+s[i].a+' '+s[i].t,'   ok (demo)');i++;setTimeout(nx,700)}else{st.log.push('Finished.');st.running=false}};nx()}}}
 let Agent=null,tm;
-try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())Agent=Capacitor.registerPlugin('Agent')}catch(e){}
+try{const C=window.Capacitor;
+if(C&&typeof C.registerPlugin==='function'&&C.isNativePlatform&&C.isNativePlatform())Agent=C.registerPlugin('Agent');
+else if(C&&typeof C.nativePromise==='function'){Agent={};['isEnabled','openSettings','run','status','stop'].forEach(m=>{Agent[m]=o=>C.nativePromise('Agent',m,o||{})})}
+}catch(e){}
 const preview=!Agent;if(preview)Agent=mock();
 const say=t=>{$('#msg').textContent=t};
 function draw(r){const L=$('#log');L.textContent='';(r.log||[]).forEach(x=>{const d=document.createElement('div');d.textContent=x;L.append(d)});L.scrollTop=1e9;
 const I=$('#items');I.textContent='';(r.screen||[]).forEach(x=>{const c=document.createElement('span');c.className='ch';c.textContent=x.text;c.onclick=()=>go('tap "'+x.text+'"');I.append(c)});
 $('#bRun').disabled=!!r.running}
 async function poll(){clearTimeout(tm);try{const r=JSON.parse((await Agent.status()).status);draw(r);if(r.running)tm=setTimeout(poll,700)}catch(e){}}
-async function chk(){try{const e=(await Agent.isEnabled()).enabled;const s=$('#st');s.textContent=preview?'Preview mode (demo only)':e?'Service is ON':'Service is OFF';s.style.color=e?'var(--b)':'var(--r)'}catch(e){}}
+async function chk(){try{const e=(await Agent.isEnabled()).enabled;const s=$('#st');s.textContent=preview?'Preview mode (demo only). Bridge: '+(window.Capacitor?Object.keys(window.Capacitor).slice(0,6).join(','):'none'):e?'Service is ON':'Service is OFF';s.style.color=e?'var(--b)':'var(--r)'}catch(e){}}
 async function go(t){const p=parseCommand(t);if(p.err)return say(p.err);
 try{await Agent.run({plan:JSON.stringify(p.steps)});say(preview?'Demo mode: nothing real happens.':'Running. You can open other apps. Use the red STOP button.');poll()}catch(e){say('Error: '+(e.message||e))}}
 const EX=['open Settings, then scroll down','open Settings, then tap Wi-Fi','go home, then read screen'];
